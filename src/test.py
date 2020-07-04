@@ -1,21 +1,21 @@
 import numpy as np
-import math
-from mat_model import predict, get_spike_threshold
+from mat_model import predict
 
 
-input_current = np.zeros(2000)
-input_current[170:1999] = 0.55
+# Spike threshold dynamics variables.
+ALPHA_1 = 37
+ALPHA_2 = 2
+W = 19  # resting value
+PERIOD = 2  # refractory period in ms
 
-# Spike threshold dynamcs variables.
-# ALPHA_1 = 30
-# ALPHA_2 = 2
-# W = 20  # resting value
-# PERIOD = 2  # refractory period in ms
-
+# Fake input current.
+input_current = np.zeros(1000)
+input_current[100] = 0.055
+input_current[150] = 0.055
+input_current[170] = 0.055
+input_current[300] = 0.055
 
 spike_response = predict(input_current)
-print(spike_response)
 
-# print(get_spike_threshold(0, []))
-
-# Todo: degree of coincidence evaluation
+# TODO: Evaluate predictions.
+# TODO: Integrate real data.
