@@ -61,9 +61,9 @@ def predict(input_current):
 
     # Visualize model states.
     plt.style.use('seaborn-darkgrid')
-    plt.plot(range(i+1), input_current, label="Input")
     plt.plot(range(i+1), voltages, label="Potential")
     plt.plot(range(i+1), thresholds, label="Spike Threshold")
+    plt.legend()
     plt.savefig('figure.png')
 
 
