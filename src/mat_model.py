@@ -16,7 +16,6 @@ ALPHA_2 = 2 # mV
 W = 19  # resting value in mV
 PERIOD = 2  # refractory period in ms
 
-
 def predict(input_current):
     """
     Predicts spikes provided an array of input currents.
