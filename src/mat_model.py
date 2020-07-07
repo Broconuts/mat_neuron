@@ -1,6 +1,8 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from scipy.stats import truncnorm
+
 
 # Membrane potential dynamics variables.
 TAU_M = 5  # ms
@@ -16,7 +18,7 @@ PERIOD = 2  # refractory period in ms
 
 
 def predict(input_current):
-    '''
+    """
     Predicts spikes provided an array of input currents.
 
     Todo: evaluate if current assumption of i equals 1ms in real time is correct.
@@ -31,7 +33,7 @@ def predict(input_current):
         spike_response : np.array
             Binary array corresponding to input current array
             representing timestep of spikes.
-    '''
+    """
     # Store variables for each timestep t.
     spike_responses = []
     spikes = []
@@ -42,6 +44,7 @@ def predict(input_current):
     for i, current in enumerate(input_current):
         # Get membrane potential.
         voltage += get_model_potential(current, voltage)
+        print(voltage)
         voltages.append(voltage)
         # Get adaptive (spike) threshold.
         spike_threshold = get_spike_threshold(i, spikes)
@@ -55,7 +58,7 @@ def predict(input_current):
             spikes.append(i)
             spike_responses.append(1)
             # Reset voltage to 0 (even though this is not assumed in the model, cf p. 2)
-            voltage = 0
+            # voltage = 0
         else:
             spike_responses.append(0)
 
@@ -63,6 +66,7 @@ def predict(input_current):
     plt.style.use('seaborn-darkgrid')
     plt.plot(range(i+1), voltages, label="Potential")
     plt.plot(range(i+1), thresholds, label="Spike Threshold")
+    plt.plot(range(i+1), input_current, label="Input Current")
     plt.legend()
     plt.savefig('figure.png')
 
@@ -71,7 +75,7 @@ def predict(input_current):
 
 
 def get_spike_threshold(t, spikes):
-    '''
+    """
     Determines the spike threshold at time t given
     the times of previous spikes.
 
@@ -86,7 +90,7 @@ def get_spike_threshold(t, spikes):
     ---------
         theta : float
             Spike threshold at time t.
-    '''
+    """
     h_t_1 = 0
     h_t_2 = 0
     # Summation over previous spikes (Equation 3 p. 2)
@@ -101,7 +105,7 @@ def get_spike_threshold(t, spikes):
 
 
 def get_model_potential(current, voltage):
-    '''
+    """
     Get model potential for a given input
     current.
 
@@ -116,6 +120,33 @@ def get_model_potential(current, voltage):
         model_potential : float
             Model (membrane) potential based
             on input current in mV.
-    '''
+    """
     # Non-resetting leaky integrator (Equation 1 p. 2)
-    return R / TAU_M * (current - voltage)
+    return (R * current - voltage) / TAU_M
+
+
+def generate_input_currents(size: int = 100, mu: float = 15.00, sigma: float = 7.00) -> np.array:
+    """
+    "Randomly" generates array of size n of currents to be injected into the
+    modelled neuron.
+
+    Parameters
+    -----------
+        size : int
+            The amount of generated input currents.
+        mu : float
+            The mean of the distribution the values are to be drawn from.
+        sigma : float
+            The standard deviation of the distribution the values are to be drawn from.
+    
+    Returns
+    -------
+        An np.array of simulated input currents.
+    """
+    return np.random.normal(mu, sigma, size)
+ 
+
+def evaluate_predicted_spikes():
+    """
+    """
+    pass
