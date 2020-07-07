@@ -44,7 +44,6 @@ def predict(input_current):
     for i, current in enumerate(input_current):
         # Get membrane potential.
         voltage += get_model_potential(current, voltage)
-        print(voltage)
         voltages.append(voltage)
         # Get adaptive (spike) threshold.
         spike_threshold = get_spike_threshold(i, spikes)
@@ -57,8 +56,7 @@ def predict(input_current):
             # Store t when there is a spike.
             spikes.append(i)
             spike_responses.append(1)
-            # Reset voltage to 0 (even though this is not assumed in the model, cf p. 2)
-            # voltage = 0
+            # Voltage does not reset. cf p. 2)
         else:
             spike_responses.append(0)
 
@@ -67,7 +65,12 @@ def predict(input_current):
     plt.plot(range(i+1), voltages, label="Potential")
     plt.plot(range(i+1), thresholds, label="Spike Threshold")
     plt.plot(range(i+1), input_current, label="Input Current")
-    plt.legend()
+    # Visualize spikes.
+    for spike in spikes:
+        plt.axvline(x=spike, color='k', linestyle='--')
+
+    plt.legend(fontsize='small', loc='upper center', bbox_to_anchor=(0.5, 1.1),
+          ncol=3, fancybox=True, shadow=True)
     plt.savefig('figure.png')
 
 
@@ -138,13 +141,13 @@ def generate_input_currents(size: int = 100, mu: float = 15.00, sigma: float = 7
             The mean of the distribution the values are to be drawn from.
         sigma : float
             The standard deviation of the distribution the values are to be drawn from.
-    
+
     Returns
     -------
         An np.array of simulated input currents.
     """
     return np.random.normal(mu, sigma, size)
- 
+
 
 def evaluate_predicted_spikes():
     """
