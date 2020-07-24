@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 
 
 # Membrane potential and spike threshold dynamics constants.
-TAU_M = 50  # used to be ms
+TAU_M = 5  # used to be ms
 R = 50  # resistance in megaOhm
-TAU_1 = 100  # used to be ms
-TAU_2 = 2000  # used to be ms
+TAU_1 = 10  # used to be ms
+TAU_2 = 200  # used to be ms
 PERIOD = 20  # refractory period in used to be ms
 
 def predict(input_current, neuron_type):
@@ -251,9 +251,8 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
         # if we're at the last repetition, compare to the first
         else:
             next_key = "1"
-        r_sum_component += calculate_coincidence_factor(voltage[current_key], voltage[next_key])
+        r_sum_component += calculation_coincidence_factor(voltage[current_key], voltage[next_key])
     r = 2 / (13 * 12) * r_sum_component
-            
     
     # load data for current
     with open(neuron_type_current[neuron_type], "r") as f:
@@ -334,10 +333,10 @@ def calculation_coincidence_factor(prediction, ground_truth, delta:int=2):
             Coincidence Factor per the calculation of the paper.
     """
     n_coincidence = 0
-    n_coincidence_poisson = 2 * firing_rate * n_data
     n_spikes_model = prediction.count(1)
     n_spikes_data = ground_truth.count(1)
     firing_rate = n_spikes_model / len(prediction)
+    n_coincidence_poisson = 2 * firing_rate * n_spikes_data
     delta = 2
 
     coincidence_factor = (n_coincidence - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * (2/(1-2 * firing_rate * delta))
