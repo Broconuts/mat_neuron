@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import pandas as pd
 import matplotlib.pyplot as plt
 
 
@@ -207,3 +208,114 @@ def generate_uniform_input_currents(size:int=100, low:float=0.1, high:float=2.0)
     """
     return np.random.uniform(low=low, high=high, size=size)
 
+
+def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tuple:
+    """
+    Loads ground-truth neuron data from the QSNM Competition 2009,
+    parses this for compatibility with the implemented MAT* model,
+    and returns the input current and spike response train for the
+    selected, available neuron type.
+    
+    Input data of QSNM Competition 2009:
+        timestep per current:   in 0.1μs
+        voltage:    in pA
+    """
+    # dicts with locations for data separated by spiking behavior
+    neuron_type_current = {'regular_spiking': "src/data/challenge_a/current.txt",
+                           'fast_spiking':'data/challenge_b/current.txt'}
+    neuron_type_voltage = {'regular_spiking': "src/data/challenge_a/voltage_allrep.txt",
+                           'fast_spiking':'data/challenge_b/voltage_allrep.txt'}
+
+    # load data for voltage
+    with open(neuron_type_voltage[neuron_type], "r") as f:
+        # dict with one list per trial (data contains 13 trials)
+        voltage = {'1':[], '2':[], '3':[], '4':[], '5':[], '6':[], '7':[], '8':[], '9': [], '10':[], '11':[], '12':[], '13':[]}
+        lines = f.readlines()
+        # as the dataset only provides us with a smaller set of voltage values than currents, we need to make sure both variables
+        #  contain the same amount of data
+        end_of_data = len(lines)
+        for line in lines:
+            # as each line contains one value per trial, separate these and sort them into the correct list
+            for i, item in enumerate(line.split("  ")):
+                if i == 0: continue  # bug handling for the circumstance that every line starts with an empty item
+                # TODO: convert voltage into binary value encoding whether or not a spike occurred
+                # voltage[str(i)].append(float(item))
+                voltage[str(i)].append(float(item) >= 0)
+    
+    # load data for current
+    with open(neuron_type_current[neuron_type], "r") as f:
+        current = [line.rstrip() for line in f]
+        # remove current data that we do not have voltage data for
+        current = current[:end_of_data]
+    
+    return current, voltage
+
+
+def evaluate_predictions_against_ground_truth(prediction, ground_truth, delta:int=2):
+    """
+    Evaluates the accuracy of model predictions against ground-truth
+    data from the QSNM Competition 2009.
+
+    Parameters
+    ---------
+        prediction : list
+            Predicted spike response from model.
+        ground_truth : dict
+            Ground-truth predicted spike responses
+            for each repetition in the sample data
+            experimental trials.
+        delta : int
+            Allowable range of time for spikes to be 
+            considered coincident, measured in ms. The default
+            per the source paper is 2ms.
+
+    Returns
+    ---------
+        acc : float
+            Prediction accuracy per the evaluation method 
+            stated in the challenge information.
+    """
+    n_spikes_model = prediction.count(1)
+    n_spikes_data = ground_truth.count(1)
+    # TODO: Integrate evaluation incorporating multiple trials in the dictionary
+    firing_rate = n_spikes_model / len(prediction)
+    n_coincidence_poisson = 2 * firing_rate * n_spikes_data
+    n_coincidence_model = 0
+    for i,spike in enumerate(prediction):
+        if spike and 1 in (ground_truth[i-delta:i], ground_truth[i:i+delta]):
+            n_coincidence_model += 1
+
+    pass
+
+
+def calculation_coincidence_factor(prediction, ground_truth, delta:int=2):
+    """
+    Calculates the coincidence factor for the evaluation of the predetion accuracy
+    Parameters
+    ---------
+        prediction : list
+            Predicted spike response from model.
+        ground_truth : dict
+            Ground-truth predicted spike responses
+            for each repetition in the sample data
+            experimental trials.
+        delta : int
+            Allowable range of time for spikes to be 
+            considered coincident, measured in ms. The default
+            per the source paper is 2ms.
+
+    Returns
+    ---------
+        coincidence_factors : float
+            Coincidence Factor per the calculation of the paper.
+    """
+    n_coincidence = 0
+    n_coincidence_poisson = 2 * firing_rate * n_data
+    n_spikes_model = prediction.count(1)
+    n_spikes_data = ground_truth.count(1)
+    firing_rate = n_spikes_model / len(prediction)
+    delta = 2
+
+    coincidence_factor = (n_coincidence - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * (2/(1-2 * firing_rate * delta))
+
+    return coincidence_factor
