@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 
 
 # Membrane potential and spike threshold dynamics constants.
-TAU_M = 5  # ms
+TAU_M = 50  # used to be ms
 R = 50  # resistance in megaOhm
-TAU_1 = 10  # ms
-TAU_2 = 200  # ms
-PERIOD = 2  # refractory period in ms
+TAU_1 = 100  # used to be ms
+TAU_2 = 2000  # used to be ms
+PERIOD = 20  # refractory period in used to be ms
 
 def predict(input_current, neuron_type):
     """
@@ -222,9 +222,9 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
     """
     # dicts with locations for data separated by spiking behavior
     neuron_type_current = {'regular_spiking': "src/data/challenge_a/current.txt",
-                           'fast_spiking':'data/challenge_b/current.txt'}
+                           'fast_spiking':'src/data/challenge_b/current.txt'}
     neuron_type_voltage = {'regular_spiking': "src/data/challenge_a/voltage_allrep.txt",
-                           'fast_spiking':'data/challenge_b/voltage_allrep.txt'}
+                           'fast_spiking':'src/data/challenge_b/voltage_allrep.txt'}
 
     # load data for voltage
     with open(neuron_type_voltage[neuron_type], "r") as f:
@@ -242,13 +242,30 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
                 # voltage[str(i)].append(float(item))
                 voltage[str(i)].append(float(item) >= 0)
     
+    # calculate the reliability R (averaged coincidence factor that is gathered by comparing spike trains of different repetitions)
+    r_sum_component = 0
+    for i in range(13, 1):
+        current_key = str(i)
+        if i < 13:
+            next_key = str(i+1)
+        # if we're at the last repetition, compare to the first
+        else:
+            next_key = "1"
+        r_sum_component += calculate_coincidence_factor(voltage[current_key], voltage[next_key])
+    r = 2 / (13 * 12) * r_sum_component
+            
+    
     # load data for current
     with open(neuron_type_current[neuron_type], "r") as f:
         current = [line.rstrip() for line in f]
-        # remove current data that we do not have voltage data for
-        current = current[:end_of_data]
+    # remove current data that we do not have voltage data for
+    current = current[:end_of_data]
+    # convert current from pA to nA to be compatible with our model
+    #  also: handle casting into float here, values were stored as str prior to this point
+    for i, value in enumerate(current):
+        current[i] = float(value) * 1e-12
     
-    return current, voltage
+    return current, voltage, r
 
 
 def evaluate_predictions_against_ground_truth(prediction, ground_truth, delta:int=2):
@@ -276,16 +293,23 @@ def evaluate_predictions_against_ground_truth(prediction, ground_truth, delta:in
             stated in the challenge information.
     """
     n_spikes_model = prediction.count(1)
-    n_spikes_data = ground_truth.count(1)
-    # TODO: Integrate evaluation incorporating multiple trials in the dictionary
     firing_rate = n_spikes_model / len(prediction)
-    n_coincidence_poisson = 2 * firing_rate * n_spikes_data
-    n_coincidence_model = 0
-    for i,spike in enumerate(prediction):
-        if spike and 1 in (ground_truth[i-delta:i], ground_truth[i:i+delta]):
-            n_coincidence_model += 1
+    # TODO: Integrate evaluation incorporating multiple trials in the dictionary
+    coincidence_factors = []
+    for _, spike_train in ground_truth.items():
+        n_spikes_data = spike_train.count(1)
+        n_coincidence_poisson = 2 * firing_rate * n_spikes_data
+        n_coincidence_model = 0
+        for i,spike in enumerate(prediction):
+            if spike and 1 in (spike_train[i-delta:i], spike_train[i:i+delta]):
+                n_coincidence_model += 1
 
-    pass
+        coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * (2/(1-2 * firing_rate * delta))
+        # TODO: get actual R val
+        R = 1
+        coincidence_factors.append(coincidence_factor / R)
+
+    return sum(coincidence_factors) / len(coincidence_factors)
 
 
 def calculation_coincidence_factor(prediction, ground_truth, delta:int=2):
@@ -319,3 +343,27 @@ def calculation_coincidence_factor(prediction, ground_truth, delta:int=2):
     coincidence_factor = (n_coincidence - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * (2/(1-2 * firing_rate * delta))
 
     return coincidence_factor
+
+
+if __name__ == '__main__':
+    delta = 2
+    neuron_type = ['regular_spiking', 'fast_spiking']
+    for n in neuron_type:
+        r_value = []
+        current, voltage = get_ground_truth_input_and_response(n)
+        for i, spike_train in voltage.items():
+            for j in [str(x) for x in range(1, 14)]:
+                n_spikes_i = spike_train.count(1)
+                # print(j, len(spike_train))
+                firing_rate = n_spikes_i / len(spike_train)
+                n_spikes_data = voltage[j].count(1)
+                n_coincidence_poisson = 2 * firing_rate * n_spikes_data
+                n_coincidence_model = 0
+                for k,spike in enumerate(spike_train):
+                    if spike and 1 in (voltage[j][k-delta:k], voltage[j][k:k+delta]):
+                        n_coincidence_model += 1
+
+                coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_i) * (2/(1-2 * firing_rate * delta))
+                r_value.append(coincidence_factor)
+
+        print(sum(r_value) / len(r_value))

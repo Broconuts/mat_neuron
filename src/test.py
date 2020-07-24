@@ -1,11 +1,24 @@
 import numpy as np
-from mat_model import predict, generate_normal_input_currents, generate_uniform_input_currents
+import mat_model as mm
 
+
+NEURON_TYPE = 'regular_spiking'
 
 # Generate random input current.
-input_current = generate_uniform_input_currents()
-# Predict spikes.
-spike_response = predict(input_current, 'regular_spiking')
+# input_current = mm.generate_uniform_input_currents()
 
-# TODO: Compare computation with other models.
+# Get ground-truth input current. 
+input_current, spike_response_actual, reliability = mm.get_ground_truth_input_and_response(NEURON_TYPE)
+
+# Predict spikes.
+spike_response_pred = mm.predict(input_current, NEURON_TYPE)
+
+print(len(spike_response_pred))
+
+# Evaluate predicted spikes.
+score = mm.evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, delta=15000)
+
+print(score)
+
 # TODO: Clean and comment.
+ 
