@@ -10,7 +10,6 @@ R = 50  # resistance in megaOhm
 TAU_1 = 100  # used to be ms
 TAU_2 = 2000  # used to be ms
 PERIOD = 20  # refractory period in used to be ms
-# ACTUAL_SPIKETRAIN_PLOT = None
 
 def predict(input_current, neuron_type):
     """
@@ -71,7 +70,6 @@ def predict(input_current, neuron_type):
     for i, spike in enumerate(ACTUAL_SPIKETRAIN_PLOT):
         if spike:
             plt.axvline(x=i, color='r', linestyle='--')
-    # plt.plot(ACTUAL_SPIKETRAIN_PLOT, color='r')
 
     plt.legend(fontsize='small', loc='upper center', bbox_to_anchor=(0.5, 1.1),
           ncol=3, fancybox=True, shadow=True)
@@ -112,7 +110,8 @@ def get_spike_threshold_variables(neuron_type):
                            'chattering']
 
     if neuron_type == 'regular_spiking':
-        return 37, 2, 19
+        # return 37, 2, 19
+        return 200, 3, 19
     elif neuron_type == 'intrinsic_bursting':
         return 1.7, 2, 26
     elif neuron_type == 'fast_spiking':
@@ -240,37 +239,38 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
         # as the dataset only provides us with a smaller set of voltage values than currents, we need to make sure both variables
         #  contain the same amount of data
         end_of_data = len(lines)
-        lines = lines[185_000:195_000]
+        lines = lines[185_000:205_000]
         for line in lines:
             # as each line contains one value per trial, separate these and sort them into the correct list
             for i, item in enumerate(line.split("  ")):
                 if i == 0: continue  # bug handling for the circumstance that every line starts with an empty item
                 # voltage[str(i)].append(float(item))
-                voltage[str(i)].append(float(item) >= 0)
-       
+                voltage[str(i)].append(float(item) >= 0 and True not in voltage[str(i)][-20:])
+
         global ACTUAL_SPIKETRAIN_PLOT
         ACTUAL_SPIKETRAIN_PLOT = voltage['1']
-    
+
     # calculate the reliability R (averaged coincidence factor that is gathered by comparing spike trains of different repetitions)
     r_sum_component = 0
     for i in range(1, 14):
         current_key = str(i)
-        r_sum_component = evaluate_predictions_against_ground_truth(voltage[current_key], voltage)
-        print("r_sum_component = ", r_sum_component)
-    r = 2 / (13 * 12) * r_sum_component
-    print("r = ", r)
-    
+        r_sum_component += evaluate_predictions_against_ground_truth(voltage[current_key], voltage)
+        # print("r_sum_component = ", r_sum_component)
+    # r = 2 / (13 * 12) * r_sum_component
+    r = r_sum_component / 13
+    # print("r = ", r)
+
     # load data for current
     with open(neuron_type_current[neuron_type], "r") as f:
         current = [line.rstrip() for line in f]
     # remove current data that we do not have voltage data for
     # current = current[:end_of_data]
-    current = current[185_000:195_000]
+    current = current[185_000:205_000]
     # convert current from pA to nA to be compatible with our model
     #  also: handle casting into float here, values were stored as str prior to this point
     for i, value in enumerate(current):
         current[i] = float(value) * 1e-3
-    
+
     return current, voltage, r
 
 
@@ -288,18 +288,19 @@ def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: di
             for each repetition in the sample data
             experimental trials.
         delta : int
-            Allowable range of time for spikes to be 
+            Allowable range of time for spikes to be
             considered coincident, measured in ms. The default
             per the source paper is 2ms.
 
     Returns
     ---------
         acc : float
-            Prediction accuracy per the evaluation method 
+            Prediction accuracy per the evaluation method
             stated in the challenge information.
     """
     n_spikes_model = prediction.count(1)
-    firing_rate = n_spikes_model / len(prediction)
+    first_spike = prediction.index(1)
+    firing_rate = prediction[first_spike:first_spike+5000].count(1) / 5000
     coincidence_factors = []
     for _, spike_train in ground_truth.items():
         n_spikes_data = spike_train.count(True)
@@ -310,6 +311,7 @@ def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: di
                 n_coincidence_model += 1
 
         coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * (2/(1-2 * firing_rate * delta))
+
         R = reliability
         coincidence_factors.append(coincidence_factor / R)
 
