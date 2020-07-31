@@ -115,7 +115,8 @@ def get_spike_threshold_variables(neuron_type):
     elif neuron_type == 'intrinsic_bursting':
         return 1.7, 2, 26
     elif neuron_type == 'fast_spiking':
-        return 10, 0.002, 11
+        # return 10, 0.002, 11
+        return 200, .3, 19
     elif neuron_type == 'chattering':
         return -0.5, 0.4, 26
 
@@ -220,11 +221,12 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
     parses this for compatibility with the implemented MAT* model,
     and returns the input current and spike response train for the
     selected, available neuron type.
-    
+
     Input data of QSNM Competition 2009:
         timestep per current:   in 0.1μs
         voltage:    in pA
     """
+    assert neuron_type in ['fast_spiking', 'regular_spiking'], 'Neuron type not supported.'
     # dicts with locations for data separated by spiking behavior
     neuron_type_current = {'regular_spiking': "src/data/challenge_a/current.txt",
                            'fast_spiking':'src/data/challenge_b/current.txt'}
@@ -234,12 +236,13 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
     # load data for voltage
     with open(neuron_type_voltage[neuron_type], "r") as f:
         # dict with one list per trial (data contains 13 trials)
-        voltage = {'1':[], '2':[], '3':[], '4':[], '5':[], '6':[], '7':[], '8':[], '9': [], '10':[], '11':[], '12':[], '13':[]}
+        rep = 13 if neuron_type == 'regular_spiking' else 9
+        voltage = {str(k+1):[] for k in range(rep)}
         lines = f.readlines()
         # as the dataset only provides us with a smaller set of voltage values than currents, we need to make sure both variables
         #  contain the same amount of data
         end_of_data = len(lines)
-        lines = lines[185_000:205_000]
+        lines = lines[280_000:290_000]
         for line in lines:
             # as each line contains one value per trial, separate these and sort them into the correct list
             for i, item in enumerate(line.split("  ")):
@@ -248,16 +251,16 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
                 voltage[str(i)].append(float(item) >= 0 and True not in voltage[str(i)][-20:])
 
         global ACTUAL_SPIKETRAIN_PLOT
-        ACTUAL_SPIKETRAIN_PLOT = voltage['1']
+        ACTUAL_SPIKETRAIN_PLOT = voltage['9']
 
     # calculate the reliability R (averaged coincidence factor that is gathered by comparing spike trains of different repetitions)
     r_sum_component = 0
-    for i in range(1, 14):
+    for i in range(1, rep+1):
         current_key = str(i)
         r_sum_component += evaluate_predictions_against_ground_truth(voltage[current_key], voltage)
-        # print("r_sum_component = ", r_sum_component)
+        print("r_sum_component = ", r_sum_component)
     # r = 2 / (13 * 12) * r_sum_component
-    r = r_sum_component / 13
+    r = r_sum_component / rep
     # print("r = ", r)
 
     # load data for current
@@ -265,7 +268,7 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
         current = [line.rstrip() for line in f]
     # remove current data that we do not have voltage data for
     # current = current[:end_of_data]
-    current = current[185_000:205_000]
+    current = current[280_000:290_000]
     # convert current from pA to nA to be compatible with our model
     #  also: handle casting into float here, values were stored as str prior to this point
     for i, value in enumerate(current):

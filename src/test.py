@@ -2,7 +2,7 @@ import numpy as np
 import mat_model as mm
 
 
-NEURON_TYPE = 'regular_spiking'
+NEURON_TYPE = 'fast_spiking'
 
 def viz(slice_length: int = 10_000):
     """
