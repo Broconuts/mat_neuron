@@ -11,7 +11,7 @@ TAU_1 = 100  # used to be ms
 TAU_2 = 2000  # used to be ms
 PERIOD = 20  # refractory period in used to be ms
 
-def predict(input_current, neuron_type):
+def predict(input_current: np.array, neuron_type: str, visualize: bool=False):
     """
     Predicts spikes provided an array of input currents.
 
@@ -58,28 +58,13 @@ def predict(input_current, neuron_type):
         else:
             spike_responses.append(0)
 
-    # Visualize model states.
-    plt.style.use('seaborn-darkgrid')
-    plt.plot(range(i+1), voltages, label="Potential")
-    plt.plot(range(i+1), thresholds, label="Spike Threshold")
-    plt.plot(range(i+1), input_current, label="Input Current")
-    # Visualize spikes.
-    for spike in spikes:
-        plt.axvline(x=spike, color='k', linestyle='--')
-
-    for i, spike in enumerate(ACTUAL_SPIKETRAIN_PLOT):
-        if spike:
-            plt.axvline(x=i, color='r', linestyle='--')
-
-    plt.legend(fontsize='small', loc='upper center', bbox_to_anchor=(0.5, 1.1),
-          ncol=3, fancybox=True, shadow=True)
-    plt.savefig('figure.png')
-
+    if visualize:
+        viz(i, voltages, thresholds, input_current, spikes)
 
     return spike_responses
 
 
-def get_spike_threshold_variables(neuron_type):
+def get_spike_threshold_variables(neuron_type: str):
     """
     Get spike threshold dynamic time dependent variables
     for modeling different types of neurons. Values
@@ -121,7 +106,7 @@ def get_spike_threshold_variables(neuron_type):
         return -0.5, 0.4, 26
 
 
-def get_spike_threshold(t, spikes, neuron_type):
+def get_spike_threshold(t: int, spikes: list, neuron_type: str):
     """
     Determines the spike threshold at time t given
     the times of previous spikes.
@@ -242,7 +227,6 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
         # as the dataset only provides us with a smaller set of voltage values than currents, we need to make sure both variables
         #  contain the same amount of data
         end_of_data = len(lines)
-        lines = lines[280_000:290_000]
         for line in lines:
             # as each line contains one value per trial, separate these and sort them into the correct list
             for i, item in enumerate(line.split("  ")):
@@ -267,8 +251,7 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
     with open(neuron_type_current[neuron_type], "r") as f:
         current = [line.rstrip() for line in f]
     # remove current data that we do not have voltage data for
-    # current = current[:end_of_data]
-    current = current[280_000:290_000]
+    current = current[:end_of_data]
     # convert current from pA to nA to be compatible with our model
     #  also: handle casting into float here, values were stored as str prior to this point
     for i, value in enumerate(current):
@@ -319,3 +302,44 @@ def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: di
         coincidence_factors.append(coincidence_factor / R)
 
     return sum(coincidence_factors) / len(coincidence_factors)
+
+
+def viz(steps, voltages, thresholds, input_current, spikes, slice_length: int = 5_000):
+    """
+    Creates graphs visualizing the actual firing of a recorded neuron compared to predictions of the MAT model
+    given identical input currents
+    TODO: complete docs for this function
+
+    """
+    # calculate amount of steps necessary
+    viz_steps = steps/slice_length
+    for step in range(round(viz_steps)):
+        plt.figure()
+        plt.plot(range(slice_length), voltages[slice_length * step:slice_length * (step+1)], label="Potential")
+        plt.plot(range(slice_length), thresholds[slice_length * step:slice_length * (step+1)], label="Spike Threshold")
+        plt.plot(range(slice_length), input_current[slice_length * step:slice_length * (step+1)], label="Input Current")
+        for spike in spikes[slice_length * step:slice_length * (step+1)]:
+            plt.axvline(x=spike, color='k', linestyle='--')
+        for i, spike in enumerate(ACTUAL_SPIKETRAIN_PLOT[slice_length * step:slice_length * (step+1)]):
+            if spike:
+                plt.axvline(x=i, color='r', linestyle='--')
+        plt.legend(fontsize='small', loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3, fancybox=True, shadow=True)
+        plt.savefig('images/figure' + str(step) + '.png')
+    # TODO: fix weird output
+    # TODO: add coincidence factor to graphs
+
+
+if __name__ == '__main__':
+    # Set type of neuron we want to model
+    neuron_type = 'fast_spiking'
+
+    # Get ground-truth input current.
+    input_current, spike_response_actual, reliability = get_ground_truth_input_and_response(neuron_type)
+
+    # Predict spikes.
+    spike_response_pred = predict(input_current, neuron_type, visualize=True)
+
+    # Evaluate predicted spikes.
+    score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability, delta=40)
+
+    print('coincidence factor: ', str(round(score, 3)))
