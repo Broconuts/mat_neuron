@@ -59,7 +59,7 @@ def predict(input_current: np.array, neuron_type: str, visualize: bool=False):
             spike_responses.append(0)
 
     if visualize:
-        viz(i, voltages, thresholds, input_current, spikes)
+        viz(i, voltages, thresholds, input_current, spike_responses)
 
     return spike_responses
 
@@ -318,8 +318,9 @@ def viz(steps, voltages, thresholds, input_current, spikes, slice_length: int = 
         plt.plot(range(slice_length), voltages[slice_length * step:slice_length * (step+1)], label="Potential")
         plt.plot(range(slice_length), thresholds[slice_length * step:slice_length * (step+1)], label="Spike Threshold")
         plt.plot(range(slice_length), input_current[slice_length * step:slice_length * (step+1)], label="Input Current")
-        for spike in spikes[slice_length * step:slice_length * (step+1)]:
-            plt.axvline(x=spike, color='k', linestyle='--')
+        for i, spike in enumerate(spikes[slice_length * step:slice_length * (step+1)]):
+            if spike:
+                plt.axvline(x=i, color='k', linestyle='--')
         for i, spike in enumerate(ACTUAL_SPIKETRAIN_PLOT[slice_length * step:slice_length * (step+1)]):
             if spike:
                 plt.axvline(x=i, color='r', linestyle='--')
