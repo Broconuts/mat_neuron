@@ -315,6 +315,7 @@ def viz(steps, voltages, thresholds, input_current, spikes, slice_length: int = 
     viz_steps = steps/slice_length
     for step in range(round(viz_steps)):
         plt.figure()
+        plt.ylim(-20, 240)
         plt.plot(range(slice_length), voltages[slice_length * step:slice_length * (step+1)], label="Potential")
         plt.plot(range(slice_length), thresholds[slice_length * step:slice_length * (step+1)], label="Spike Threshold")
         plt.plot(range(slice_length), input_current[slice_length * step:slice_length * (step+1)], label="Input Current")
