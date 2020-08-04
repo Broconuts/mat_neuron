@@ -220,6 +220,8 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
 
     # load data for voltage
     with open(neuron_type_voltage[neuron_type], "r") as f:
+        # start at later timestep because beginning of data is irrelevant.
+        start_timestep = 150_000
         # dict with one list per trial (data contains 13 trials)
         rep = 13 if neuron_type == 'regular_spiking' else 9
         voltage = {str(k+1):[] for k in range(rep)}
@@ -227,7 +229,7 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
         # as the dataset only provides us with a smaller set of voltage values than currents, we need to make sure both variables
         #  contain the same amount of data
         end_of_data = len(lines)
-        for line in lines:
+        for line in lines[start_timestep:]:
             # as each line contains one value per trial, separate these and sort them into the correct list
             for i, item in enumerate(line.split("  ")):
                 if i == 0: continue  # bug handling for the circumstance that every line starts with an empty item
@@ -242,7 +244,7 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
     for i in range(1, rep+1):
         current_key = str(i)
         r_sum_component += evaluate_predictions_against_ground_truth(voltage[current_key], voltage)
-        print("r_sum_component = ", r_sum_component)
+        # print("r_sum_component = ", r_sum_component)
     # r = 2 / (13 * 12) * r_sum_component
     r = r_sum_component / rep
     # print("r = ", r)
@@ -251,7 +253,7 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
     with open(neuron_type_current[neuron_type], "r") as f:
         current = [line.rstrip() for line in f]
     # remove current data that we do not have voltage data for
-    current = current[:end_of_data]
+    current = current[start_timestep:end_of_data]
     # convert current from pA to nA to be compatible with our model
     #  also: handle casting into float here, values were stored as str prior to this point
     for i, value in enumerate(current):
