@@ -95,13 +95,13 @@ def get_spike_threshold_variables(neuron_type: str):
                            'chattering']
 
     if neuron_type == 'regular_spiking':
-        # return 37, 2, 19
-        return 200, 3, 19
+        return 37, 2, 19
+        #return 200, 3, 19
     elif neuron_type == 'intrinsic_bursting':
         return 1.7, 2, 26
     elif neuron_type == 'fast_spiking':
-        # return 10, 0.002, 11
-        return 200, .3, 19
+        return 10, 0.002, 11
+        # return 200, .3, 19
     elif neuron_type == 'chattering':
         return -0.5, 0.4, 26
 
@@ -297,8 +297,7 @@ def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: di
         for i, spike in enumerate(spike_train):
             if spike and 1 in prediction[i-delta:i] + prediction[i:i+delta]:
                 n_coincidence_model += 1
-
-        coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * (2/(1-2 * firing_rate * delta))
+        coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * (2/(1-2 * firing_rate * (delta/10)))
 
         R = reliability
         coincidence_factors.append(coincidence_factor / R)
@@ -335,15 +334,15 @@ def viz(steps, voltages, thresholds, input_current, spikes, slice_length: int = 
 
 if __name__ == '__main__':
     # Set type of neuron we want to model
-    neuron_type = 'fast_spiking'
+    neuron_type = 'regular_spiking'
 
     # Get ground-truth input current.
-    input_current, spike_response_actual, reliability = get_ground_truth_input_and_response(neuron_type)
+    input_current, spike_response_actual, reliability = get_ground_truth_input_and_response('regular_spiking')
 
     # Predict spikes.
-    spike_response_pred = predict(input_current, neuron_type, visualize=True)
+    spike_response_pred = predict(input_current, neuron_type, visualize=False)
 
     # Evaluate predicted spikes.
-    score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability, delta=40)
+    score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability, delta=20)
 
     print('coincidence factor: ', str(round(score, 3)))
