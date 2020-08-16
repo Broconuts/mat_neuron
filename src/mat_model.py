@@ -27,9 +27,9 @@ def predict(input_current: np.array, neuron_type: str, visualize: bool=False):
 
     Returns
     ---------
-        spike_response : np.array
-            Binary array corresponding to input current array
-            representing timestep of spikes.
+        spike_response : list
+            Binary array corresponding to input current array representing timestep of spikes.
+            spike_response[t] == 1 if model proposed a spike, spike_response[t] == 0 otherwise.
     """
 
     # Store variables for each timestep t.
@@ -293,31 +293,50 @@ def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: di
     return sum(coincidence_factors) / len(coincidence_factors)
 
 
-def viz(steps, voltages, thresholds, input_current, spikes, slice_length: int = 5_000):
+def viz(steps: int, voltages: list, thresholds: list, input_current: np.array, spikes: list, slice_length: int = 5_000):
     """
     Creates graphs visualizing the actual firing of a recorded neuron compared to predictions of the MAT model
-    given identical input currents
-    TODO: complete docs for this function
-
+    given identical input currents.
+    
+    Parameters
+    ----------
+        steps : int
+            The total number of timesteps for which the model simulated behavior.
+        voltages : list
+            A list of the model potentials of the MAT model at each timestep t.
+        thresholds : list
+            A list of the spike thresholds of the MAT model at each timestep t.
+        input_current : np.array
+            The input array (1D) of currents at each timestep t.
+        spikes : list
+            List containing information regarding whether the MAT model simulated a spike at timestep t. 
+            spikes[t] == 1 if model proposed a spike, spikes[t] == 0 otherwise.
+        slice_length : int
+            The amount of timesteps that is to be contained within a single graph.
     """
     # calculate amount of steps necessary
     viz_steps = steps/slice_length
     for step in range(round(viz_steps)):
         plt.figure()
+        # make sure that y-axis has same scale for all plots for easier comparison
         plt.ylim(-20, 240)
+        # plot model potential over time for current time slice
         plt.plot(range(slice_length), voltages[slice_length * step:slice_length * (step+1)], label="Potential")
+        # plot spike threshold over time for current time slice
         plt.plot(range(slice_length), thresholds[slice_length * step:slice_length * (step+1)], label="Spike Threshold")
+        # plot input currents over time for current time slice
         plt.plot(range(slice_length), input_current[slice_length * step:slice_length * (step+1)], label="Input Current")
+        # mark timesteps when the MAT model assumed a spike
         for i, spike in enumerate(spikes[slice_length * step:slice_length * (step+1)]):
             if spike:
                 plt.axvline(x=i, color='k', linestyle='--')
+        # mark timesteps when a spike actually occurred in the recorded data
         for i, spike in enumerate(ACTUAL_SPIKETRAIN_PLOT[slice_length * step:slice_length * (step+1)]):
             if spike:
                 plt.axvline(x=i, color='r', linestyle='--')
         plt.legend(fontsize='small', loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3, fancybox=True, shadow=True)
+        # save figures
         plt.savefig('images/figure' + str(step) + '.png')
-    # TODO: fix weird output
-    # TODO: add coincidence factor to graphs
 
 
 if __name__ == '__main__':
