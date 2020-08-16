@@ -376,7 +376,7 @@ if __name__ == '__main__':
             print("Proceeding with default value.")
             recording_type = "regular_spiking"
     else:
-        recording_type = "regular_spiking"
+        recording_type = (model_type if model_type in PROVIDED_NEURON_TYPE_DATA else "regular_spiking")
 
     if vars(args)["delta"]:
         if vars(args)["delta"] in VALID_DELTAS:
@@ -394,7 +394,7 @@ if __name__ == '__main__':
 
     print("Modelled neuron type:\t\t\t\t", model_type)
     print("Using data of neuron type:\t\t\t", recording_type)
-    print("Calculating coincidence factor using delta of\t", str(delta), "ms.")
+    print("Calculating coincidence factor using delta of\t", str(delta), "ms")
 
     # Set type of neuron we want to model
     neuron_type = 'regular_spiking'
