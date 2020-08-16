@@ -15,7 +15,7 @@ def predict(input_current: np.array, neuron_type: str, visualize: bool=False):
     """
     Predicts spikes provided an array of input currents.
 
-    Todo: evaluate if current assumption of i equals 1ms in real time is correct.
+    TODO: evaluate if current assumption of i equals 1ms in real time is correct.
 
     Parameters
     ---------
@@ -66,18 +66,14 @@ def predict(input_current: np.array, neuron_type: str, visualize: bool=False):
 
 def get_spike_threshold_variables(neuron_type: str):
     """
-    Get spike threshold dynamic time dependent variables
-    for modeling different types of neurons. Values
-    derived from Kobayashi et al. based on optimization
-    on simulated injected current data.
+    Get spike threshold dynamic time dependent variables for modeling different types of neurons. Values derived from 
+    Kobayashi et al. based on optimization on simulated injected current data.
 
     Parameters
     ---------
         neuron_type : str
-            Type of neuron to model. Influenes spike
-            threshold dynamics variables. Can be
-            regular_spiking, instrinsic_bursting,
-            fast_spiking, or chattering.
+            Type of neuron to model. Influenes spike threshold dynamics variables. Can be regular_spiking, 
+            instrinsic_bursting, fast_spiking, or chattering.
 
     Returns
     ---------
@@ -108,8 +104,7 @@ def get_spike_threshold_variables(neuron_type: str):
 
 def get_spike_threshold(t: int, spikes: list, neuron_type: str):
     """
-    Determines the spike threshold at time t given
-    the times of previous spikes.
+    Determines the spike threshold at time t given the times of previous spikes.
 
     Parameters
     ---------
@@ -140,20 +135,17 @@ def get_spike_threshold(t: int, spikes: list, neuron_type: str):
 
 def get_model_potential(current, voltage):
     """
-    Get model potential for a given input
-    current.
+    Get model potential for a given input current.
 
     Parameters
     ---------
         current : float
-            Current in nA at current timestep of
-            input.
+            Current in nA at current timestep of input.
 
     Returns
     ---------
         model_potential : float
-            Model (membrane) potential based
-            on input current in mV.
+            Model (membrane) potential based on input current in mV.
     """
     # Non-resetting leaky integrator (Equation 1 p. 2)
     return (R * current - voltage) / TAU_M
@@ -161,8 +153,8 @@ def get_model_potential(current, voltage):
 
 def generate_normal_input_currents(size: int = 100, mu: float = 0.42, sigma: float = 0.14) -> np.array:
     """
-    "Randomly" generates array of size n of currents to be injected into the
-    modelled neuron. Follows a normal distribution.
+    "Randomly" generates array of size n of currents to be injected into the modelled neuron. Follows a normal 
+    distribution.
 
     Parameters
     -----------
@@ -182,8 +174,7 @@ def generate_normal_input_currents(size: int = 100, mu: float = 0.42, sigma: flo
 
 def generate_uniform_input_currents(size:int=100, low:float=0.1, high:float=2.0) -> np.array:
     """
-    Randomly generates array of size n of current to be injected into the
-    neuron model. Follows a uniform distribution
+    Randomly generates array of size n of current to be injected into the neuron model. Follows a uniform distribution.
 
     Parameters
     ---------
@@ -202,14 +193,12 @@ def generate_uniform_input_currents(size:int=100, low:float=0.1, high:float=2.0)
 
 def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tuple:
     """
-    Loads ground-truth neuron data from the QSNM Competition 2009,
-    parses this for compatibility with the implemented MAT* model,
-    and returns the input current and spike response train for the
-    selected, available neuron type.
+    Loads ground-truth neuron data from the QSNM Competition 2009, parses this for compatibility with the implemented 
+    MAT* model, and returns the input current and spike response train for the selected, available neuron type.
 
     Input data of QSNM Competition 2009:
         timestep per current:   in 0.1μs
-        voltage:    in pA
+        voltage:                in pA
     """
     assert neuron_type in ['fast_spiking', 'regular_spiking'], 'Neuron type not supported.'
     # dicts with locations for data separated by spiking behavior
@@ -226,8 +215,8 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
         rep = 13 if neuron_type == 'regular_spiking' else 9
         voltage = {str(k+1):[] for k in range(rep)}
         lines = f.readlines()
-        # as the dataset only provides us with a smaller set of voltage values than currents, we need to make sure both variables
-        #  contain the same amount of data
+        # as the dataset only provides us with a smaller set of voltage values than currents, we need to make sure both 
+        #  variables contain the same amount of data
         end_of_data = len(lines)
         for line in lines[start_timestep:]:
             # as each line contains one value per trial, separate these and sort them into the correct list
@@ -239,7 +228,8 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
         global ACTUAL_SPIKETRAIN_PLOT
         ACTUAL_SPIKETRAIN_PLOT = voltage['9']
 
-    # calculate the reliability R (averaged coincidence factor that is gathered by comparing spike trains of different repetitions)
+    # calculate the reliability R (averaged coincidence factor that is gathered by comparing spike trains of different 
+    #  repetitions)
     r_sum_component = 0
     for i in range(1, rep+1):
         current_key = str(i)
@@ -262,29 +252,25 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
     return current, voltage, r
 
 
-def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: dict, reliability: int = 1, delta: int = 20):
+def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: dict, reliability: int = 1, 
+                                              delta: int = 20):
     """
-    Evaluates the accuracy of model predictions against ground-truth
-    data from the QSNM Competition 2009.
+    Evaluates the accuracy of model predictions against ground-truth data from the QSNM Competition 2009.
 
     Parameters
     ---------
         prediction : list
             Predicted spike response from model.
         ground_truth : dict
-            Ground-truth predicted spike responses
-            for each repetition in the sample data
-            experimental trials.
+            Ground-truth predicted spike responses for each repetition in the sample data experimental trials.
         delta : int
-            Allowable range of time for spikes to be
-            considered coincident, measured in ms. The default
-            per the source paper is 2ms.
+            Allowable range of time for spikes to be considered coincident, measured in ms. The default per the source 
+            paper is 2ms.
 
     Returns
     ---------
         acc : float
-            Prediction accuracy per the evaluation method
-            stated in the challenge information.
+            Prediction accuracy per the evaluation method stated in the challenge information.
     """
     n_spikes_model = prediction.count(1)
     first_spike = prediction.index(1)
@@ -297,11 +283,13 @@ def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: di
         for i, spike in enumerate(spike_train):
             if spike and 1 in prediction[i-delta:i] + prediction[i:i+delta]:
                 n_coincidence_model += 1
-        coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * (2/(1-2 * firing_rate * (delta/10)))
+        coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * 
+                                (2/(1-2 * firing_rate * (delta/10)))
 
         R = reliability
         coincidence_factors.append(coincidence_factor / R)
-
+    print("Amount of predicted spikes: ", str(n_spikes_model))
+    print("Amount of actual spikes: ", str(n_spikes_data))
     return sum(coincidence_factors) / len(coincidence_factors)
 
 
@@ -334,15 +322,15 @@ def viz(steps, voltages, thresholds, input_current, spikes, slice_length: int = 
 
 if __name__ == '__main__':
     # Set type of neuron we want to model
-    neuron_type = 'regular_spiking'
+    neuron_type = 'fast_spiking'
 
     # Get ground-truth input current.
-    input_current, spike_response_actual, reliability = get_ground_truth_input_and_response('regular_spiking')
+    input_current, spike_response_actual, reliability = get_ground_truth_input_and_response('fast_spiking')
 
     # Predict spikes.
     spike_response_pred = predict(input_current, neuron_type, visualize=False)
 
     # Evaluate predicted spikes.
-    score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability, delta=20)
+    score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability, delta=40)
 
     print('coincidence factor: ', str(round(score, 3)))
