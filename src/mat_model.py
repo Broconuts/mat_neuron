@@ -1,9 +1,15 @@
+import sys
+import argparse
 import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+# Variables for CLI.
+SUPPORTED_MODEL_TYPES = ['regular_spiking', 'intrinsic_bursting', 'fast_spiking', 'chattering']
+PROVIDED_NEURON_TYPE_DATA = ['regular_spiking', 'fast_spiking']
+VALID_DELTAS = [20, 40]
 
 # Membrane potential and spike threshold dynamics constants.
 TAU_M = 50  # used to be ms
@@ -32,7 +38,6 @@ def predict(input_current: np.array, neuron_type: str, visualize: bool=False):
             Binary array corresponding to input current array representing timestep of spikes.
             spike_response[t] == 1 if model proposed a spike, spike_response[t] == 0 otherwise.
     """
-    print("Using model parameters for neuron type: ", neuron_type)
     # Store variables for each timestep t.
     spike_responses = []
     spikes = []
@@ -87,10 +92,7 @@ def get_spike_threshold_variables(neuron_type: str):
             Resting value.
 
     """
-    assert neuron_type in ['regular_spiking',
-                           'intrinsic_bursting',
-                           'fast_spiking',
-                           'chattering']
+    assert neuron_type in SUPPORTED_MODEL_TYPES
 
     if neuron_type == 'regular_spiking':
         return 37, 2, 19
@@ -209,7 +211,6 @@ def get_ground_truth_input_and_response(neuron_type: str = 'regular_spiking') ->
                            'fast_spiking':'src/data/challenge_b/current.txt'}
     neuron_type_voltage = {'regular_spiking': "src/data/challenge_a/voltage_allrep.txt",
                            'fast_spiking':'src/data/challenge_b/voltage_allrep.txt'}
-    print("Loading data for neuron type:\t\t", neuron_type)
 
     # load data for voltage
     with open(neuron_type_voltage[neuron_type], "r") as f:
@@ -344,16 +345,68 @@ def viz(steps: int, voltages: list, thresholds: list, input_current: np.array, s
 
 
 if __name__ == '__main__':
+    # retrieve command line params
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', '--model_type', help="specify the parameters of the model, determining which neuron type \
+                        it should model", type=str)
+    parser.add_argument('-r', '--recording_type', help="specify which neuron type data is to be loaded for evaluation",
+                        type=str)
+    parser.add_argument('-d', '--delta', help="determine the acceptable time-difference in spiking activity for \
+                        evaluation metric calculation", type=int)
+    parser.add_argument('-v', '--visualize', help="create plots of model behavior in the images directory",
+                        action='store_true')
+    args = parser.parse_args()
+
+    # handle user inputs
+    if vars(args)["model_type"]:
+        if vars(args)["model_type"] in SUPPORTED_MODEL_TYPES:
+            model_type = vars(args)["model_type"]
+        else:
+            print("Invalid model type. Please only chose from one of the following: ", str(SUPPORTED_MODEL_TYPES))
+            print("Proceeding with default value.")
+            model_type = "regular_spiking"
+    else:
+        model_type = "regular_spiking"
+    if vars(args)["recording_type"]:
+        if vars(args)["recording_type"] in PROVIDED_NEURON_TYPE_DATA:
+            recording_type = vars(args)["recording_type"]
+        else:
+            print("Invalid recorded neuron type. Please only chose from one of the following: ", 
+                    str(PROVIDED_NEURON_TYPE_DATA))
+            print("Proceeding with default value.")
+            recording_type = "regular_spiking"
+    else:
+        recording_type = "regular_spiking"
+
+    if vars(args)["delta"]:
+        if vars(args)["delta"] in VALID_DELTAS:
+            delta = vars(args)["delta"]
+        else:
+            print("Invalid delta value. Please chose either value 20 or 40.")
+            print("Proceeding with default value.")
+            delta = 20
+    else:
+        delta = 20
+    if vars(args)["visualize"]:
+        visualize = True
+    else:
+        visualize = False
+
+    print("Modelled neuron type:\t\t\t\t", model_type)
+    print("Using data of neuron type:\t\t\t", recording_type)
+    print("Calculating coincidence factor using delta of\t", str(delta), "ms.")
+
     # Set type of neuron we want to model
     neuron_type = 'regular_spiking'
 
     # Get ground-truth input current.
-    input_current, spike_response_actual, reliability = get_ground_truth_input_and_response('regular_spiking')
+    input_current, spike_response_actual, reliability = get_ground_truth_input_and_response(recording_type)
 
     # Predict spikes.
-    spike_response_pred = predict(input_current, neuron_type, visualize=True)
+    spike_response_pred = predict(input_current, model_type, visualize=visualize)
 
     # Evaluate predicted spikes.
-    score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability, delta=40)
+    score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability, 
+            delta=delta)
 
     print("Process complete!\n\nModel performed with coincidence factor: ", str(round(score, 3)))
