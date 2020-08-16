@@ -1,7 +1,8 @@
-import numpy as np
 import math
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 # Membrane potential and spike threshold dynamics constants.
@@ -31,15 +32,16 @@ def predict(input_current: np.array, neuron_type: str, visualize: bool=False):
             Binary array corresponding to input current array representing timestep of spikes.
             spike_response[t] == 1 if model proposed a spike, spike_response[t] == 0 otherwise.
     """
-
+    print("Using model parameters for neuron type: ", neuron_type)
     # Store variables for each timestep t.
     spike_responses = []
     spikes = []
     voltage = 0
     voltages = []
     thresholds = []
+    print("Predicting spiking behavior for provided timesteps...")
     # Assume that each step i represents 1ms
-    for i, current in enumerate(input_current):
+    for i, current in enumerate(tqdm(input_current, bar_format='{l_bar}{bar:50}{r_bar}{bar:-50b}')):
         # Get membrane potential.
         voltage += get_model_potential(current, voltage)
         voltages.append(voltage)
@@ -135,6 +137,7 @@ def get_spike_threshold(t: int, spikes: list, neuron_type: str):
 
 def get_model_potential(current, voltage):
     """
+    TODO: finish this!
     Get model potential for a given input current.
 
     Parameters
@@ -172,7 +175,7 @@ def generate_normal_input_currents(size: int = 100, mu: float = 0.42, sigma: flo
     return np.random.normal(mu, sigma, size)
 
 
-def generate_uniform_input_currents(size:int=100, low:float=0.1, high:float=2.0) -> np.array:
+def generate_uniform_input_currents(size: int = 100, low: float = 0.1, high: float = 2.0) -> np.array:
     """
     Randomly generates array of size n of current to be injected into the neuron model. Follows a uniform distribution.
 
@@ -191,7 +194,7 @@ def generate_uniform_input_currents(size:int=100, low:float=0.1, high:float=2.0)
     return np.random.uniform(low=low, high=high, size=size)
 
 
-def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tuple:
+def get_ground_truth_input_and_response(neuron_type: str = 'regular_spiking') -> tuple:
     """
     Loads ground-truth neuron data from the QSNM Competition 2009, parses this for compatibility with the implemented 
     MAT* model, and returns the input current and spike response train for the selected, available neuron type.
@@ -206,6 +209,7 @@ def get_ground_truth_input_and_response(neuron_type:str='regular_spiking') -> tu
                            'fast_spiking':'src/data/challenge_b/current.txt'}
     neuron_type_voltage = {'regular_spiking': "src/data/challenge_a/voltage_allrep.txt",
                            'fast_spiking':'src/data/challenge_b/voltage_allrep.txt'}
+    print("Loading data for neuron type:\t\t", neuron_type)
 
     # load data for voltage
     with open(neuron_type_voltage[neuron_type], "r") as f:
@@ -283,13 +287,11 @@ def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: di
         for i, spike in enumerate(spike_train):
             if spike and 1 in prediction[i-delta:i] + prediction[i:i+delta]:
                 n_coincidence_model += 1
-        coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * 
+        coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * \
                                 (2/(1-2 * firing_rate * (delta/10)))
 
         R = reliability
         coincidence_factors.append(coincidence_factor / R)
-    print("Amount of predicted spikes: ", str(n_spikes_model))
-    print("Amount of actual spikes: ", str(n_spikes_data))
     return sum(coincidence_factors) / len(coincidence_factors)
 
 
@@ -314,10 +316,11 @@ def viz(steps: int, voltages: list, thresholds: list, input_current: np.array, s
         slice_length : int
             The amount of timesteps that is to be contained within a single graph.
     """
+    print("Generating graphs for performance visualization...")
     # calculate amount of steps necessary
     viz_steps = steps/slice_length
-    for step in range(round(viz_steps)):
-        plt.figure()
+    for step in tqdm(range(round(viz_steps)), bar_format='{l_bar}{bar:50}{r_bar}{bar:-50b}'):
+        fig = plt.figure()
         # make sure that y-axis has same scale for all plots for easier comparison
         plt.ylim(-20, 240)
         # plot model potential over time for current time slice
@@ -337,19 +340,20 @@ def viz(steps: int, voltages: list, thresholds: list, input_current: np.array, s
         plt.legend(fontsize='small', loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=3, fancybox=True, shadow=True)
         # save figures
         plt.savefig('images/figure' + str(step) + '.png')
+        plt.close(fig)
 
 
 if __name__ == '__main__':
     # Set type of neuron we want to model
-    neuron_type = 'fast_spiking'
+    neuron_type = 'regular_spiking'
 
     # Get ground-truth input current.
-    input_current, spike_response_actual, reliability = get_ground_truth_input_and_response('fast_spiking')
+    input_current, spike_response_actual, reliability = get_ground_truth_input_and_response('regular_spiking')
 
     # Predict spikes.
-    spike_response_pred = predict(input_current, neuron_type, visualize=False)
+    spike_response_pred = predict(input_current, neuron_type, visualize=True)
 
     # Evaluate predicted spikes.
     score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability, delta=40)
 
-    print('coincidence factor: ', str(round(score, 3)))
+    print("Process complete!\n\nModel performed with coincidence factor: ", str(round(score, 3)))
