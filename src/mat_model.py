@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 # Variables for CLI.
-SUPPORTED_MODEL_TYPES = ['regular_spiking', 'intrinsic_bursting', 'fast_spiking', 'chattering']
+SUPPORTED_MODEL_TYPES = ['regular_spiking', 'intrinsic_bursting', 'fast_spiking', 'chattering', "regular_spiking*"]
 PROVIDED_NEURON_TYPE_DATA = ['regular_spiking', 'fast_spiking']
 VALID_DELTAS = [20, 40]
 
@@ -21,8 +21,6 @@ PERIOD = 20  # refractory period in used to be ms
 def predict(input_current: np.array, neuron_type: str, visualize: bool=False):
     """
     Predicts spikes provided an array of input currents.
-
-    TODO: evaluate if current assumption of i equals 1ms in real time is correct.
 
     Parameters
     ---------
@@ -96,12 +94,12 @@ def get_spike_threshold_variables(neuron_type: str):
 
     if neuron_type == 'regular_spiking':
         return 37, 2, 19
-        #return 200, 3, 19
+    if neuron_type == 'regular_spiking*':
+        return 200, 3, 19
     elif neuron_type == 'intrinsic_bursting':
         return 1.7, 2, 26
     elif neuron_type == 'fast_spiking':
         return 10, 0.002, 11
-        # return 200, .3, 19
     elif neuron_type == 'chattering':
         return -0.5, 0.4, 26
 
@@ -239,10 +237,7 @@ def get_ground_truth_input_and_response(neuron_type: str = 'regular_spiking') ->
     for i in range(1, rep+1):
         current_key = str(i)
         r_sum_component += evaluate_predictions_against_ground_truth(voltage[current_key], voltage)
-        # print("r_sum_component = ", r_sum_component)
-    # r = 2 / (13 * 12) * r_sum_component
     r = r_sum_component / rep
-    # print("r = ", r)
 
     # load data for current
     with open(neuron_type_current[neuron_type], "r") as f:
