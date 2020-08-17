@@ -389,7 +389,7 @@ if __name__ == '__main__':
 
     print("Modelled neuron type:\t\t\t\t", model_type)
     print("Using data of neuron type:\t\t\t", recording_type)
-    print("Calculating coincidence factor using delta of\t", str(delta), "ms")
+    print("Calculating coincidence factor using delta of\t", str(delta/10), "ms")
 
     # Set type of neuron we want to model
     neuron_type = 'regular_spiking'
