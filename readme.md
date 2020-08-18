@@ -32,4 +32,5 @@ Please note that the time it takes for the model to run varies on the parameters
 
 ## Sources
 Kobayashi, R., Tsubo, Y., & Shinomoto, S. (2009). Made-to-order spiking neuronmodel  equipped  with  a  multi-timescale  adaptive  threshold.  https://www.frontiersin.org/articles/10.3389/neuro.10.009.2009/full
+
 Gerstner, Wulfram & Naud, Richard. (2009). How Good are Neuron Models?. Science (New York, N.Y.). 326. 379-80.
