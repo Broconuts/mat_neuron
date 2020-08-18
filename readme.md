@@ -17,7 +17,7 @@ If you want to specify parameters for testing and evaluating the model rather th
 | -v|     --visualize|                                        create plots of model behavior in the images directory|                                            (no value, param works on its own)|
 
 **Examples**
-<pre>python src\mat_model.py -m fast-spiking -r regular spiking -d 40 -v</pre>
+<pre>python src\mat_model.py -m fast_spiking -r regular_spiking -d 40 -v</pre>
 
 _run the model using fask-spiking parameters, evaluating the performance on regular-spiking data with coincidence factor calculation using delta value 40, creating plots in the "images" directory afterwards_
 
