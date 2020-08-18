@@ -71,13 +71,13 @@ def predict(input_current: np.array, neuron_type: str, visualize: bool=False):
 
 def get_spike_threshold_variables(neuron_type: str):
     """
-    Get spike threshold dynamic time dependent variables for modeling different types of neurons. Values derived from 
+    Get spike threshold dynamic time dependent variables for modeling different types of neurons. Values derived from
     Kobayashi et al. based on optimization on simulated injected current data.
 
     Parameters
     ---------
         neuron_type : str
-            Type of neuron to model. Influenes spike threshold dynamics variables. Can be regular_spiking, 
+            Type of neuron to model. Influenes spike threshold dynamics variables. Can be regular_spiking,
             instrinsic_bursting, fast_spiking, or chattering.
 
     Returns
@@ -156,7 +156,7 @@ def get_model_potential(current, voltage):
 
 def generate_normal_input_currents(size: int = 100, mu: float = 0.42, sigma: float = 0.14) -> np.array:
     """
-    "Randomly" generates array of size n of currents to be injected into the modelled neuron. Follows a normal 
+    "Randomly" generates array of size n of currents to be injected into the modelled neuron. Follows a normal
     distribution.
 
     Parameters
@@ -196,7 +196,7 @@ def generate_uniform_input_currents(size: int = 100, low: float = 0.1, high: flo
 
 def get_ground_truth_input_and_response(neuron_type: str = 'regular_spiking') -> tuple:
     """
-    Loads ground-truth neuron data from the QSNM Competition 2009, parses this for compatibility with the implemented 
+    Loads ground-truth neuron data from the QSNM Competition 2009, parses this for compatibility with the implemented
     MAT* model, and returns the input current and spike response train for the selected, available neuron type.
 
     Input data of QSNM Competition 2009:
@@ -218,7 +218,7 @@ def get_ground_truth_input_and_response(neuron_type: str = 'regular_spiking') ->
         rep = 13 if neuron_type == 'regular_spiking' else 9
         voltage = {str(k+1):[] for k in range(rep)}
         lines = f.readlines()
-        # as the dataset only provides us with a smaller set of voltage values than currents, we need to make sure both 
+        # as the dataset only provides us with a smaller set of voltage values than currents, we need to make sure both
         #  variables contain the same amount of data
         end_of_data = len(lines)
         for line in lines[start_timestep:]:
@@ -231,7 +231,7 @@ def get_ground_truth_input_and_response(neuron_type: str = 'regular_spiking') ->
         global ACTUAL_SPIKETRAIN_PLOT
         ACTUAL_SPIKETRAIN_PLOT = voltage['9']
 
-    # calculate the reliability R (averaged coincidence factor that is gathered by comparing spike trains of different 
+    # calculate the reliability R (averaged coincidence factor that is gathered by comparing spike trains of different
     #  repetitions)
     r_sum_component = 0
     for i in range(1, rep+1):
@@ -252,7 +252,7 @@ def get_ground_truth_input_and_response(neuron_type: str = 'regular_spiking') ->
     return current, voltage, r
 
 
-def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: dict, reliability: int = 1, 
+def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: dict, reliability: int = 1,
                                               delta: int = 20):
     """
     Evaluates the accuracy of model predictions against ground-truth data from the QSNM Competition 2009.
@@ -264,7 +264,7 @@ def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: di
         ground_truth : dict
             Ground-truth predicted spike responses for each repetition in the sample data experimental trials.
         delta : int
-            Allowable range of time for spikes to be considered coincident, measured in ms. The default per the source 
+            Allowable range of time for spikes to be considered coincident, measured in ms. The default per the source
             paper is 2ms.
 
     Returns
@@ -272,22 +272,35 @@ def evaluate_predictions_against_ground_truth(prediction: list, ground_truth: di
         acc : float
             Prediction accuracy per the evaluation method stated in the challenge information.
     """
+    # Get number of spikes predicted by the model.
     n_spikes_model = prediction.count(1)
+    # Get the first spike to avoid calculating firing rate over empty segments.
     first_spike = prediction.index(1)
+    # Calculate firing rate for determining Poisson-coincidence value.
     firing_rate = prediction[first_spike:first_spike+5000].count(1) / 5000
     coincidence_factors = []
+    # Iterate through the ground-truth repetitions.
     for _, spike_train in ground_truth.items():
+        # Get number of spikes in the ground-truth data.
         n_spikes_data = spike_train.count(True)
+        # Calculate n expexted coincident spikes of homogeneous Poisson process.
         n_coincidence_poisson = 2 * firing_rate * n_spikes_data
         n_coincidence_model = 0
+        # Iterate through timesteps of ground-truth to identify coincident
+        # spikes in the prediction.
         for i, spike in enumerate(spike_train):
             if spike and 1 in prediction[i-delta:i] + prediction[i:i+delta]:
                 n_coincidence_model += 1
+
+        # Calculate the raw coincidence factor, gamma.
         coincidence_factor = (n_coincidence_model - n_coincidence_poisson) / (n_spikes_data + n_spikes_model) * \
                                 (2/(1-2 * firing_rate * (delta/10)))
 
+        # Use inter-repetition reliability score to normalize the gamma values.
         R = reliability
         coincidence_factors.append(coincidence_factor / R)
+
+    # Gamma coincidence factor is average of normalized coincidence factor across all repetitions.
     return sum(coincidence_factors) / len(coincidence_factors)
 
 
@@ -295,7 +308,7 @@ def viz(steps: int, voltages: list, thresholds: list, input_current: np.array, s
     """
     Creates graphs visualizing the actual firing of a recorded neuron compared to predictions of the MAT model
     given identical input currents.
-    
+
     Parameters
     ----------
         steps : int
@@ -307,7 +320,7 @@ def viz(steps: int, voltages: list, thresholds: list, input_current: np.array, s
         input_current : np.array
             The input array (1D) of currents at each timestep t.
         spikes : list
-            List containing information regarding whether the MAT model simulated a spike at timestep t. 
+            List containing information regarding whether the MAT model simulated a spike at timestep t.
             spikes[t] == 1 if model proposed a spike, spikes[t] == 0 otherwise.
         slice_length : int
             The amount of timesteps that is to be contained within a single graph.
@@ -366,7 +379,7 @@ if __name__ == '__main__':
         if vars(args)["recording_type"] in PROVIDED_NEURON_TYPE_DATA:
             recording_type = vars(args)["recording_type"]
         else:
-            print("Invalid recorded neuron type. Please only chose from one of the following: ", 
+            print("Invalid recorded neuron type. Please only chose from one of the following: ",
                     str(PROVIDED_NEURON_TYPE_DATA))
             print("Proceeding with default value.")
             recording_type = "regular_spiking"
@@ -401,7 +414,7 @@ if __name__ == '__main__':
     spike_response_pred = predict(input_current, model_type, visualize=visualize)
 
     # Evaluate predicted spikes.
-    score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability, 
+    score = evaluate_predictions_against_ground_truth(spike_response_pred, spike_response_actual, reliability,
             delta=delta)
 
     print("Process complete!\n\nModel performed with coincidence factor: ", str(round(score, 3)))

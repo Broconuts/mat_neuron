@@ -21,8 +21,15 @@ If you want to specify parameters for testing and evaluating the model rather th
 
 _run the model using fask-spiking parameters, evaluating the performance on regular-spiking data with coincidence factor calculation using delta value 40, creating plots in the "images" directory afterwards_
 
+### Output
+After runtime, model performance can be qualitatively explored by viewing the output image files in the _images_ directory. Each image demonstrates the predicted spikes (black) against the
+ground-truth spikes (red) of neuron firing data from The Quantitative Single-Neuron Modeling Competition 2009. An example image is shown below.
+
+![](https://github.com/Broconuts/mat_neuron/raw/master/images/figure5.png)
+
 ### A Note on Performance
 Please note that the time it takes for the model to run varies on the parameters it is run on.
 
 ## Sources
 Kobayashi, R., Tsubo, Y., & Shinomoto, S. (2009). Made-to-order spiking neuronmodel  equipped  with  a  multi-timescale  adaptive  threshold.  https://www.frontiersin.org/articles/10.3389/neuro.10.009.2009/full
+Gerstner, Wulfram & Naud, Richard. (2009). How Good are Neuron Models?. Science (New York, N.Y.). 326. 379-80.
